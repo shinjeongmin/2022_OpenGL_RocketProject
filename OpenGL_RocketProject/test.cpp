@@ -52,13 +52,47 @@ int main()
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
 	// background
-	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
+	glClearColor(0.0f, 0.0f, 1.0f, 0.0f);
 
+	// VAO 생성 및 바인딩
+	GLuint VertexArrayID;
+	glGenVertexArrays(1, &VertexArrayID);
+	glBindVertexArray(VertexArrayID);
+
+	// vertex buffer 정보 정의
+	static const GLfloat g_vertex_buffer_data[] = {
+		-1.0f, -1.0f, 0.0f,
+		1.0f, -1.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+	};
+
+	// VBO 생성 및 바인딩, vertex data 복사
+	GLuint vertexbuffer;
+	glGenBuffers(1, &vertexbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW); 
+
+	GLuint ProgramID = LoadShaders("/SimpleVertexShader.vert", "/SimpleFragmentShader.frag"); // shader.cpp파일 필요
 
 	do {
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		// Draw nothing, see you in tutorial 2 !
+		glUseProgram(ProgramID);
+
+		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(
+			0,
+			3,
+			GL_FLOAT,
+			GL_FALSE,
+			0,
+			(void*) 0
+		);
+
+		glDrawArrays(GL_TRIANGLES, 0, 3);    
+
+		glDisableVertexAttribArray(0);
 
 		// Swap buffers
 		glfwSwapBuffers(window);
