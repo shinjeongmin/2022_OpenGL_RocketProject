@@ -9,7 +9,7 @@
 GLFWwindow* window;
 
 #include <GLM\glm.hpp>
-
+#include <GLM/gtc/matrix_transform.hpp>
 #include "shader.h"
 
 int main()
@@ -86,6 +86,14 @@ int main()
 
 	GLuint ProgramID = LoadShaders("SimpleVertexShader.vert", "SimpleFragmentShader.frag"); // shader.cpp파일 필요
 	
+	// 유니폼 변수 생성
+	GLuint MatrixID = glGetUniformLocation(ProgramID, "MVP");
+
+	glm::mat4 View = glm::lookAt(glm::vec3(3, 3, 3), glm::vec3(0,0,0), glm::vec3(0,1,0));
+	glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 1024.0f / 768.0f, 0.1f, 100.0f);
+	glm::mat4 Model = glm::mat4(1.0f);
+	glm::mat4 MVP = Projection * View * Model;
+
 	do {
 		glClear(GL_COLOR_BUFFER_BIT);
 
@@ -100,6 +108,9 @@ int main()
 		glBindBuffer(GL_ARRAY_BUFFER, vertexColorBuffer);
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+
+		// 유니폼 변수 데이터 입력
+		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 

@@ -5,9 +5,10 @@ layout(location = 1) in vec3 vertex_color;
 
 out vec3 VertexLastColor;
 
+uniform mat4 MVP;
+
 void main(){
-	gl_Position.xyz = vertexPosition_modelspace;
-	gl_Position.w = 1.0f;
+	gl_Position = MVP * vec4(vertexPosition_modelspace, 1.0f);
 
 	VertexLastColor = vertex_color;
 }
