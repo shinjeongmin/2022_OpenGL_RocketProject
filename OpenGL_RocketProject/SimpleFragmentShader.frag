@@ -1,7 +1,9 @@
 #version 450 core
 
+in vec3 VertexLastColor;
+
 out vec3 color;
 
 void main(){
-	color = vec3(1, 0, 0);
+	color = VertexLastColor;
 }
