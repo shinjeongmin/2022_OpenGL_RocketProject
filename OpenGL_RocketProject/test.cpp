@@ -170,8 +170,15 @@ int main()
 	glm::mat4 Rotation = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0, 1, 0));
 	glm::mat4 Scaling = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
 	Model = Translation * Rotation * Scaling;
+
+	// Second Model
+	glm::mat4 Translation2 = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 2));
+	glm::mat4 Rotation2 = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0, 1, 0));
+	glm::mat4 Scaling2 = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
+	glm::mat4 Model2 = Translation2 * Rotation2 * Scaling2;
 	
 	glm::mat4 MVP = Projection * View * Model;
+	glm::mat4 MVP2 = Projection * View * Model2;
 
 	do {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // depth buffer bit 초기화로 depth test 통과처리
@@ -190,7 +197,10 @@ int main()
 
 		// 유니폼 변수 데이터 입력
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 3 * 12);
 
+		// 유니폼 변수2 데이터 입력
+		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP2[0][0]);
 		glDrawArrays(GL_TRIANGLES, 0, 3 * 12);
 
 		glDisableVertexAttribArray(0);
