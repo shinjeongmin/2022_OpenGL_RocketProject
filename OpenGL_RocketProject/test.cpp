@@ -160,6 +160,8 @@ int main()
 	// 유니폼 변수 생성
 	GLuint MatrixID = glGetUniformLocation(ProgramID, "MVP");
 
+	// ---- in rendering loop, variables ----- 
+
 	// MVP 행렬 생성
 	glm::mat4 View = glm::lookAt(glm::vec3(4, 3, 3), glm::vec3(0,0,0), glm::vec3(0,1,0));
 	glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 1024.0f / 768.0f, 0.1f, 100.0f);
@@ -179,9 +181,20 @@ int main()
 	
 	glm::mat4 MVP = Projection * View * Model;
 	glm::mat4 MVP2 = Projection * View * Model2;
-
-	// mouse cursor position 설정
+	
+	// 마우스 입력 관련 초기화
+	float lastTime = glfwGetTime();
+	float currentTime = lastTime;
+	glfwPollEvents();
 	glfwSetCursorPos(window, 1024 / 2, 768 / 2);
+
+	// camera position
+	glm::vec3 CamPosition = glm::vec3(4, 3, 3);
+	// camera movement
+	float horizontalAngle = 0.0f;
+	float VerticalAngle = 0.0f;
+	float mouseSpeed = 0.001f;
+	float CamMoveSpeed = 0.01f;
 
 	do {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // depth buffer bit 초기화로 depth test 통과처리
@@ -211,11 +224,54 @@ int main()
 		// 현재 프레임의 cursor position을 받아와서 rotation을 변경하기
 		double xpos, ypos;
 		glfwGetCursorPos(window, &xpos, &ypos);
-		Rotation = glm::rotate(Rotation, glm::radians(0.1f) * (float)(xpos - 1024 / 2), glm::vec3(0,1,0));
+		glfwSetCursorPos(window, 1024 / 2, 768 / 2); // 프레임 마지막에 cursor 고정
 
-		// 키보드/마우스 조작으로 Rotation 변경 후 Model에 적용하고 Model을 MVP에 적용
+		horizontalAngle += mouseSpeed * float(1024 / 2 - xpos);
+		VerticalAngle += mouseSpeed * float(768 / 2 - ypos);
+		if (VerticalAngle > 1.5f) VerticalAngle = 1.5f;
+		if (VerticalAngle < -1.5f) VerticalAngle = -1.5f;
+
+		glm::vec3 direction = glm::vec3(cos(VerticalAngle) * sin(horizontalAngle), sin(VerticalAngle), cos(VerticalAngle) * cos(horizontalAngle));
+
+		// 카메라 업 벡터 정의
+		currentTime = glfwGetTime();
+		float deltaTime = float(currentTime - lastTime);
+
+		glm::vec3 right = glm::vec3(sin(horizontalAngle - 3.14 / 2.0f), 0, cos(horizontalAngle - 3.14 / 2.0f));
+		glm::vec3 up = glm::cross(right, direction);
+
+
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		{ // W - move straight 
+			CamPosition += direction * deltaTime * CamMoveSpeed;
+		}
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		{ // A - move left
+			CamPosition += -right * deltaTime * CamMoveSpeed;
+		}
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		{ // S - move back
+			CamPosition += -direction * deltaTime * CamMoveSpeed;
+		}
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		{ // D - move right
+			CamPosition += right * deltaTime * CamMoveSpeed;
+		}
+		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+		{ // Q - move down
+			CamPosition += -up * deltaTime * CamMoveSpeed / 2.0f;
+		}
+		if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+		{ // E - move up
+			CamPosition += up * deltaTime * CamMoveSpeed / 2.0f;
+		}
+
+		View = glm::lookAt(CamPosition, CamPosition + direction, up);
+
+		// 변환된 이동, 회전, 크기를 Model에 적용하고 Model을 MVP에 적용
 		Model = Translation * Rotation * Scaling;
 		MVP = Projection * View * Model;
+		MVP2 = Projection * View * Model2;
 
 		// 유니폼 변수 데이터 입력
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
@@ -226,9 +282,6 @@ int main()
 		glDrawArrays(GL_TRIANGLES, 0, 3 * 12);
 
 		glDisableVertexAttribArray(0);
-
-		// 프레임 마지막에 cursor 고정
-		glfwSetCursorPos(window, 1024 / 2, 768 / 2);
 
 		// Swap buffers
 		glfwSwapBuffers(window);
