@@ -180,6 +180,9 @@ int main()
 	glm::mat4 MVP = Projection * View * Model;
 	glm::mat4 MVP2 = Projection * View * Model2;
 
+	// mouse cursor position 설정
+	glfwSetCursorPos(window, 1024 / 2, 768 / 2);
+
 	do {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // depth buffer bit 초기화로 depth test 통과처리
 
@@ -205,6 +208,11 @@ int main()
 			Rotation = glm::rotate(Rotation, glm::radians(-1.5f), glm::vec3(0, 1, 0));
 		}
 
+		// 현재 프레임의 cursor position을 받아와서 rotation을 변경하기
+		double xpos, ypos;
+		glfwGetCursorPos(window, &xpos, &ypos);
+		Rotation = glm::rotate(Rotation, glm::radians(0.1f) * (float)(xpos - 1024 / 2), glm::vec3(0,1,0));
+
 		// 키보드/마우스 조작으로 Rotation 변경 후 Model에 적용하고 Model을 MVP에 적용
 		Model = Translation * Rotation * Scaling;
 		MVP = Projection * View * Model;
@@ -218,6 +226,9 @@ int main()
 		glDrawArrays(GL_TRIANGLES, 0, 3 * 12);
 
 		glDisableVertexAttribArray(0);
+
+		// 프레임 마지막에 cursor 고정
+		glfwSetCursorPos(window, 1024 / 2, 768 / 2);
 
 		// Swap buffers
 		glfwSwapBuffers(window);
