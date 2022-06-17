@@ -195,6 +195,20 @@ int main()
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
 
+		// 키보드 조작
+		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+			Rotation = glm::rotate(Rotation, glm::radians(1.0f), glm::vec3(0, 1, 0));
+		}
+		// 마우스 조작
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+		{
+			Rotation = glm::rotate(Rotation, glm::radians(-1.5f), glm::vec3(0, 1, 0));
+		}
+
+		// 키보드/마우스 조작으로 Rotation 변경 후 Model에 적용하고 Model을 MVP에 적용
+		Model = Translation * Rotation * Scaling;
+		MVP = Projection * View * Model;
+
 		// 유니폼 변수 데이터 입력
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 		glDrawArrays(GL_TRIANGLES, 0, 3 * 12);
