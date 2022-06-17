@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <Windows.h>
-
+#include <vector>
+#include <string>
+#include <random>
 #define GLEW_STATIC
 #include <GL\glew.h>
 
@@ -11,6 +13,10 @@ GLFWwindow* window;
 #include <GLM\glm.hpp>
 #include <GLM/gtc/matrix_transform.hpp>
 #include "shader.h"
+bool loadOBJ(const char*, std::vector<glm::vec3>&, std::vector<glm::vec2>&, std::vector<glm::vec3>&);
+
+// another funtion
+void drawCylinder(GLuint, GLuint, GLuint, glm::mat4, int);
 
 int main()
 {
@@ -59,101 +65,65 @@ int main()
 	// background
 	glClearColor(0.0f, 0.0f, 1.0f, 0.0f);
 
+	// ----- vertex buffer -----
+
 	// VAO 생성 및 바인딩
 	GLuint VertexArrayID;
 	glGenVertexArrays(1, &VertexArrayID);
 	glBindVertexArray(VertexArrayID);
 
-	// vertex buffer 정보 정의
-	static const GLfloat g_vertex_buffer_data[] = {
-		-1.0f,-1.0f,-1.0f,
-		-1.0f,-1.0f, 1.0f,
-		-1.0f, 1.0f, 1.0f,
-		 1.0f, 1.0f,-1.0f,
-		-1.0f,-1.0f,-1.0f,
-		-1.0f, 1.0f,-1.0f,
-		 1.0f,-1.0f, 1.0f,
-		-1.0f,-1.0f,-1.0f,
-		 1.0f,-1.0f,-1.0f,
-		 1.0f, 1.0f,-1.0f,
-		 1.0f,-1.0f,-1.0f,
-		-1.0f,-1.0f,-1.0f,
-		-1.0f,-1.0f,-1.0f,
-		-1.0f, 1.0f, 1.0f,
-		-1.0f, 1.0f,-1.0f,
-		 1.0f,-1.0f, 1.0f,
-		-1.0f,-1.0f, 1.0f,
-		-1.0f,-1.0f,-1.0f,
-		-1.0f, 1.0f, 1.0f,
-		-1.0f,-1.0f, 1.0f,
-		 1.0f,-1.0f, 1.0f,
-		 1.0f, 1.0f, 1.0f,
-		 1.0f,-1.0f,-1.0f,
-		 1.0f, 1.0f,-1.0f,
-		 1.0f,-1.0f,-1.0f,
-		 1.0f, 1.0f, 1.0f,
-		 1.0f,-1.0f, 1.0f,
-		 1.0f, 1.0f, 1.0f,
-		 1.0f, 1.0f,-1.0f,
-		-1.0f, 1.0f,-1.0f,
-		 1.0f, 1.0f, 1.0f,
-		-1.0f, 1.0f,-1.0f,
-		-1.0f, 1.0f, 1.0f,
-		 1.0f, 1.0f, 1.0f,
-		-1.0f, 1.0f, 1.0f,
-		 1.0f,-1.0f, 1.0f
-	};
+	// cube vertex object
+	std::vector<glm::vec3> cube_vertex_position_array;
+	std::vector<glm::vec2> cube_vertex_uv_array;
+	std::vector<glm::vec3> cube_vertex_normal_array;
+	loadOBJ("object/cube.obj", cube_vertex_position_array, cube_vertex_uv_array, cube_vertex_normal_array);
+
+	// cylinder vertex object
+	std::vector<glm::vec3> cylinder_vertex_position_array;
+	std::vector<glm::vec2> cylinder_vertex_uv_array;
+	std::vector<glm::vec3> cylinder_vertex_normal_array;
+	loadOBJ("object/cylinder.obj", cylinder_vertex_position_array, cylinder_vertex_uv_array, cylinder_vertex_normal_array);
 
 	// VBO 생성 및 바인딩, vertex data 복사
 	GLuint vertexbuffer;
 	glGenBuffers(1, &vertexbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW); 
+	glBufferData(GL_ARRAY_BUFFER, cube_vertex_position_array.size() * sizeof(glm::vec3), &cube_vertex_position_array[0], GL_STATIC_DRAW);
+	GLuint vertexbuffer2;
+	glGenBuffers(1, &vertexbuffer2);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer2);
+	glBufferData(GL_ARRAY_BUFFER, cylinder_vertex_position_array.size() * sizeof(glm::vec3), &cylinder_vertex_position_array[0], GL_STATIC_DRAW);
 
-	static const GLfloat g_vertex_color_buffer_data[] = {
-		0.583f,  0.771f,  0.014f,
-		0.609f,  0.115f,  0.436f,
-		0.327f,  0.483f,  0.844f,
-		0.822f,  0.569f,  0.201f,
-		0.435f,  0.602f,  0.223f,
-		0.310f,  0.747f,  0.185f,
-		0.597f,  0.770f,  0.761f,
-		0.559f,  0.436f,  0.730f,
-		0.359f,  0.583f,  0.152f,
-		0.483f,  0.596f,  0.789f,
-		0.559f,  0.861f,  0.639f,
-		0.195f,  0.548f,  0.859f,
-		0.014f,  0.184f,  0.576f,
-		0.771f,  0.328f,  0.970f,
-		0.406f,  0.615f,  0.116f,
-		0.676f,  0.977f,  0.133f,
-		0.971f,  0.572f,  0.833f,
-		0.140f,  0.616f,  0.489f,
-		0.997f,  0.513f,  0.064f,
-		0.945f,  0.719f,  0.592f,
-		0.543f,  0.021f,  0.978f,
-		0.279f,  0.317f,  0.505f,
-		0.167f,  0.620f,  0.077f,
-		0.347f,  0.857f,  0.137f,
-		0.055f,  0.953f,  0.042f,
-		0.714f,  0.505f,  0.345f,
-		0.783f,  0.290f,  0.734f,
-		0.722f,  0.645f,  0.174f,
-		0.302f,  0.455f,  0.848f,
-		0.225f,  0.587f,  0.040f,
-		0.517f,  0.713f,  0.338f,
-		0.053f,  0.959f,  0.120f,
-		0.393f,  0.621f,  0.362f,
-		0.673f,  0.211f,  0.457f,
-		0.820f,  0.883f,  0.371f,
-		0.982f,  0.099f,  0.879f
-	};
+	// ----- color -----
 
-	// 색 버퍼 생성, 바인딩, data 복사 
+	// cube color vertex object
+	std::vector<glm::vec3> cube_vertex_color_buffer_data;
+	// setting ramdom color data
+	std::random_device rd;
+	std::mt19937_64 mt(rd());
+	std::uniform_real_distribution<float> range(0.0f, 1.0f);
+	for (int i = 0; i < cube_vertex_position_array.size(); i++)
+	{
+		cube_vertex_color_buffer_data.push_back(glm::vec3(range(mt), range(mt), range(mt)));
+	}
+
+	// cylinder color vertex object
+	std::vector<glm::vec3> cylinder_vertex_color_buffer_data;
+	// setting ramdom color data
+	for (int i = 0; i < cylinder_vertex_position_array.size(); i++)
+	{
+		cylinder_vertex_color_buffer_data.push_back(glm::vec3(range(mt), range(mt), range(mt)));
+	}
+
+	// 색 버퍼 생성, 바인딩, data 복사
 	GLuint vertexColorBuffer;
 	glGenBuffers(1, &vertexColorBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexColorBuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_color_buffer_data), g_vertex_color_buffer_data, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, cube_vertex_color_buffer_data.size() * sizeof(glm::vec3), &cube_vertex_color_buffer_data[0], GL_STATIC_DRAW);
+	GLuint vertexColorBuffer2;
+	glGenBuffers(1, &vertexColorBuffer2);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexColorBuffer2);
+	glBufferData(GL_ARRAY_BUFFER, cylinder_vertex_color_buffer_data.size() * sizeof(glm::vec3), &cylinder_vertex_color_buffer_data[0], GL_STATIC_DRAW);
 
 	GLuint ProgramID = LoadShaders("SimpleVertexShader.vert", "SimpleFragmentShader.frag"); // shader.cpp파일 필요
 	
@@ -178,9 +148,16 @@ int main()
 	glm::mat4 Rotation2 = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0, 1, 0));
 	glm::mat4 Scaling2 = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
 	glm::mat4 Model2 = Translation2 * Rotation2 * Scaling2;
+
+	// 3 Model
+	glm::mat4 Translation3 = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 5));
+	glm::mat4 Rotation3 = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0, 1, 0));
+	glm::mat4 Scaling3 = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
+	glm::mat4 Model3 = Translation3 * Rotation3 * Scaling3;
 	
 	glm::mat4 MVP = Projection * View * Model;
 	glm::mat4 MVP2 = Projection * View * Model2;
+	glm::mat4 MVP3 = Projection * View * Model3;
 	
 	// 마우스 입력 관련 초기화
 	float lastTime = glfwGetTime();
@@ -201,7 +178,7 @@ int main()
 
 		glUseProgram(ProgramID);
 
-		// vertex buffer를 이용한 삼각형 위치 bind, enable array, attrib pointer
+		// vertex buffer를 이용한 위치 bind, enable array, attrib pointer
 		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
@@ -272,14 +249,40 @@ int main()
 		Model = Translation * Rotation * Scaling;
 		MVP = Projection * View * Model;
 		MVP2 = Projection * View * Model2;
+		MVP3 = Projection * View * Model3;
 
 		// 유니폼 변수 데이터 입력
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-		glDrawArrays(GL_TRIANGLES, 0, 3 * 12);
+		glDrawArrays(GL_TRIANGLES, 0, cube_vertex_position_array.size());
 
 		// 유니폼 변수2 데이터 입력
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP2[0][0]);
-		glDrawArrays(GL_TRIANGLES, 0, 3 * 12);
+		glDrawArrays(GL_TRIANGLES, 0, cube_vertex_position_array.size());
+
+
+		//// cylinder를 그리기 위한 rebinding
+		//glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer2);
+		//glEnableVertexAttribArray(0);
+		//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+		//// vertex color buffer를 이용한 bind, enable array, attrib pointer
+		//glBindBuffer(GL_ARRAY_BUFFER, vertexColorBuffer2);
+		//glEnableVertexAttribArray(1);
+		//glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+		//// 키보드 조작
+		//if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+		//	Translation3 = glm::translate(Translation3, glm::vec3(0, 0.001, 0));
+		//}
+
+		//Model3 = Translation3 * Rotation3 * Scaling3;
+		//MVP3 = Projection * View * Model3;
+
+		//// 유니폼 변수3 데이터 입력
+		//glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP3[0][0]);
+		//glDrawArrays(GL_TRIANGLES, 0, cylinder_vertex_position_array.size());
+
+		drawCylinder(vertexbuffer2, vertexColorBuffer2, MatrixID, MVP3, cylinder_vertex_position_array.size());
 
 		glDisableVertexAttribArray(0);
 
@@ -295,4 +298,118 @@ int main()
 	glfwTerminate();
 
 	return 0;
+}
+
+// 함수를 vertex bind / model control / draw 단게로 나누어서 설계하자.
+
+
+void drawCylinder(GLuint vertexbuffer2, GLuint vertexColorBuffer2, GLuint MatrixID, glm::mat4 MVP3, int size) {
+	// cylinder를 그리기 위한 rebinding
+	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer2);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+	// vertex color buffer를 이용한 bind, enable array, attrib pointer
+	glBindBuffer(GL_ARRAY_BUFFER, vertexColorBuffer2);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+	// 유니폼 변수3 데이터 입력
+	glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP3[0][0]);
+	glDrawArrays(GL_TRIANGLES, 0, size);
+}
+
+// .obj 파일에서 버텍스 위치, 텍스처 좌표, 노멀 벡터 데이터를 가져오는 함수
+bool loadOBJ(const char* path, std::vector<glm::vec3>& out_vertices, std::vector<glm::vec2>& out_uvs, std::vector<glm::vec3>& out_normals)
+
+{
+	printf("Loading OBJ file %s...\n", path);
+
+	std::vector<unsigned int> vertexIndices, uvIndices, normalIndices;
+	std::vector<glm::vec3> temp_vertices;
+	std::vector<glm::vec2> temp_uvs;
+	std::vector<glm::vec3> temp_normals;
+
+	FILE* file;
+	fopen_s(&file, path, "r");
+	if (file == NULL) {
+		printf("Impossible to open the file ! Are you in the right path ? See Tutorial 1 for details\n");
+		getchar();
+		return false;
+	}
+
+	while (1) {
+
+		char lineHeader[128];
+		// read the first word of the line
+		int res = fscanf_s(file, "%s", lineHeader, sizeof(lineHeader));
+		if (res == EOF)
+			break; // EOF = End Of File. Quit the loop.
+
+		// else : parse lineHeader
+
+		if (strcmp(lineHeader, "v") == 0) {
+			glm::vec3 vertex;
+			fscanf_s(file, "%f %f %f\n", &vertex.x, &vertex.y, &vertex.z);
+			temp_vertices.push_back(vertex);
+		}
+		else if (strcmp(lineHeader, "vt") == 0) {
+			glm::vec2 uv;
+			fscanf_s(file, "%f %f\n", &uv.x, &uv.y);
+			uv.y = -uv.y; // Invert V coordinate since we will only use DDS texture, which are inverted. Remove if you want to use TGA or BMP loaders.
+			temp_uvs.push_back(uv);
+		}
+		else if (strcmp(lineHeader, "vn") == 0) {
+			glm::vec3 normal;
+			fscanf_s(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
+			temp_normals.push_back(normal);
+		}
+		else if (strcmp(lineHeader, "f") == 0) {
+			std::string vertex1, vertex2, vertex3;
+			unsigned int vertexIndex[3], uvIndex[3], normalIndex[3];
+			int matches = fscanf_s(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndex[0], &uvIndex[0], &normalIndex[0], &vertexIndex[1], &uvIndex[1], &normalIndex[1], &vertexIndex[2], &uvIndex[2], &normalIndex[2]);
+			if (matches != 9) {
+				printf("File can't be read by our simple parser :-( Try exporting with other options\n");
+				fclose(file);
+				return false;
+			}
+			vertexIndices.push_back(vertexIndex[0]);
+			vertexIndices.push_back(vertexIndex[1]);
+			vertexIndices.push_back(vertexIndex[2]);
+			uvIndices.push_back(uvIndex[0]);
+			uvIndices.push_back(uvIndex[1]);
+			uvIndices.push_back(uvIndex[2]);
+			normalIndices.push_back(normalIndex[0]);
+			normalIndices.push_back(normalIndex[1]);
+			normalIndices.push_back(normalIndex[2]);
+		}
+		else {
+			// Probably a comment, eat up the rest of the line
+			char stupidBuffer[1000];
+			fgets(stupidBuffer, 1000, file);
+		}
+
+	}
+
+	// For each vertex of each triangle
+	for (unsigned int i = 0; i < vertexIndices.size(); i++) {
+
+		// Get the indices of its attributes
+		unsigned int vertexIndex = vertexIndices[i];
+		unsigned int uvIndex = uvIndices[i];
+		unsigned int normalIndex = normalIndices[i];
+
+		// Get the attributes thanks to the index
+		glm::vec3 vertex = temp_vertices[vertexIndex - 1];
+		glm::vec2 uv = temp_uvs[uvIndex - 1];
+		glm::vec3 normal = temp_normals[normalIndex - 1];
+
+		// Put the attributes in buffers
+		out_vertices.push_back(vertex);
+		out_uvs.push_back(uv);
+		out_normals.push_back(normal);
+
+	}
+	fclose(file);
+	return true;
 }
