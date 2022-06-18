@@ -15,8 +15,44 @@ GLFWwindow* window;
 #include "shader.h"
 bool loadOBJ(const char*, std::vector<glm::vec3>&, std::vector<glm::vec2>&, std::vector<glm::vec3>&);
 
+// define transformation component
+class TransformComponent {
+public:
+	glm::mat4 translation;
+	glm::mat4 rotation;
+	glm::mat4 scale;
+
+	TransformComponent(glm::vec3 _pos, glm::vec3 _scale) {
+		translation = glm::translate(glm::mat4(1.0f), _pos);
+		rotation = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0,1,0));
+		scale = glm::scale(glm::mat4(1.0f), _scale);
+	}
+	TransformComponent(glm::mat4 _translation, glm::mat4 _rotation, glm::mat4 _scale) {
+		translation = _translation;
+		rotation = _rotation;
+		scale = _scale;
+	}
+	void rotate(float degree, glm::vec3 axis) {
+		rotation = glm::rotate(glm::mat4(1.0f), glm::radians(degree), axis);
+	}
+	void setTransform(TransformComponent trans) {
+		translation = trans.translation;
+		rotation = trans.rotation;
+		scale = trans.scale;
+	}
+	void setTransform(glm::mat4 _translation, glm::mat4 _rotation, glm::mat4 _scale) {
+		translation = _translation;
+		rotation = _rotation;
+		scale = _scale;
+	}
+};
+
+// global variable
+glm::mat4 View = glm::lookAt(glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 1024.0f / 768.0f, 0.1f, 1000.0f);
+
 // another funtion
-void drawCylinder(GLuint, GLuint, GLuint, glm::mat4, int);
+TransformComponent drawObject(TransformComponent trasform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size);
 
 int main()
 {
@@ -67,11 +103,222 @@ int main()
 
 	// ----- vertex buffer -----
 
+	// VAO 생성 및 바인딩
+	GLuint VertexArrayID;
+	glGenVertexArrays(1, &VertexArrayID);
+	glBindVertexArray(VertexArrayID);
+
+	// cube vertex object
+	std::vector<glm::vec3> cube_vertex_position_array;
+	std::vector<glm::vec2> cube_vertex_uv_array;
+	std::vector<glm::vec3> cube_vertex_normal_array;
+	loadOBJ("object/cube.obj", cube_vertex_position_array, cube_vertex_uv_array, cube_vertex_normal_array);
+	// cylinder vertex object
+	std::vector<glm::vec3> cylinder_vertex_position_array;
+	std::vector<glm::vec2> cylinder_vertex_uv_array;
+	std::vector<glm::vec3> cylinder_vertex_normal_array;
+	loadOBJ("object/cylinder.obj", cylinder_vertex_position_array, cylinder_vertex_uv_array, cylinder_vertex_normal_array);
+	// cone vertex object
+	std::vector<glm::vec3> cone_vertex_position_array;
+	std::vector<glm::vec2> cone_vertex_uv_array;
+	std::vector<glm::vec3> cone_vertex_normal_array;
+	loadOBJ("object/cone.obj", cone_vertex_position_array, cone_vertex_uv_array, cone_vertex_normal_array);
+	// triangle vertex object
+	GLfloat triangle_vertex_buffer_data[] = {
+		-1.0f, -1.0f, 0.0f,
+		1.0f, -1.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+	};
+
+	// each basic shape object VBO 생성 및 바인딩, vertex data 복사
+	GLuint cube_vertexbuffer;
+	glGenBuffers(1, &cube_vertexbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, cube_vertexbuffer);
+	glBufferData(GL_ARRAY_BUFFER, cube_vertex_position_array.size() * sizeof(glm::vec3), &cube_vertex_position_array[0], GL_STATIC_DRAW);
+	GLuint cylinder_vertexbuffer;
+	glGenBuffers(1, &cylinder_vertexbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, cylinder_vertexbuffer);
+	glBufferData(GL_ARRAY_BUFFER, cylinder_vertex_position_array.size() * sizeof(glm::vec3), &cylinder_vertex_position_array[0], GL_STATIC_DRAW);
+	GLuint cone_vertexbuffer;
+	glGenBuffers(1, &cone_vertexbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, cone_vertexbuffer);
+	glBufferData(GL_ARRAY_BUFFER, cone_vertex_position_array.size() * sizeof(glm::vec3), &cone_vertex_position_array[0], GL_STATIC_DRAW);
+	GLuint triangle_vertexbuffer;
+	glGenBuffers(1, &triangle_vertexbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, triangle_vertexbuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertex_buffer_data), triangle_vertex_buffer_data, GL_STATIC_DRAW);
+
+	// ----- color vertex -----
+
+	// cube color vertex object
+	std::vector<glm::vec3> cube_vertex_color_buffer_data;
+	// setting ramdom color data
+	std::random_device rd;
+	std::mt19937_64 mt(rd());
+	std::uniform_real_distribution<float> range(0.0f, 1.0f);
+	for (int i = 0; i < cube_vertex_position_array.size(); i++)
+		cube_vertex_color_buffer_data.push_back(glm::vec3(range(mt), range(mt), range(mt)));
+
+	// cylinder color vertex object
+	std::vector<glm::vec3> cylinder_vertex_color_buffer_data;
+	for (int i = 0; i < cylinder_vertex_position_array.size(); i++)
+		cylinder_vertex_color_buffer_data.push_back(glm::vec3(range(mt), range(mt), range(mt)));
+
+	// cone color vertex object
+	std::vector<glm::vec3> cone_vertex_color_buffer_data;
+	for (int i = 0; i < cone_vertex_position_array.size(); i++)
+		cone_vertex_color_buffer_data.push_back(glm::vec3(range(mt), range(mt), range(mt)));
+	
+	// triangle color vertex object
+	GLfloat triangle_vertex_color_buffer_data[] = {
+		1.0f, 0.0f, 0.0f,
+		1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+	};
+
+	// 색 버퍼 생성, 바인딩, data 복사
+	GLuint cube_vertex_color_buffer;
+	glGenBuffers(1, &cube_vertex_color_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, cube_vertex_color_buffer);
+	glBufferData(GL_ARRAY_BUFFER, cube_vertex_color_buffer_data.size() * sizeof(glm::vec3), &cube_vertex_color_buffer_data[0], GL_STATIC_DRAW);
+	GLuint cylinder_vertex_color_buffer;
+	glGenBuffers(1, &cylinder_vertex_color_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, cylinder_vertex_color_buffer);
+	glBufferData(GL_ARRAY_BUFFER, cylinder_vertex_color_buffer_data.size() * sizeof(glm::vec3), &cylinder_vertex_color_buffer_data[0], GL_STATIC_DRAW);
+	GLuint cone_vertex_color_buffer;
+	glGenBuffers(1, &cone_vertex_color_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, cone_vertex_color_buffer);
+	glBufferData(GL_ARRAY_BUFFER, cone_vertex_color_buffer_data.size() * sizeof(glm::vec3), &cone_vertex_color_buffer_data[0], GL_STATIC_DRAW);
+	GLuint triangle_vertex_color_buffer;
+	glGenBuffers(1, &triangle_vertex_color_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, triangle_vertex_color_buffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertex_color_buffer_data), triangle_vertex_color_buffer_data, GL_STATIC_DRAW);
+
+	GLuint ProgramID = LoadShaders("SimpleVertexShader.vert", "SimpleFragmentShader.frag"); // shader.cpp파일 필요
+
+	// 유니폼 변수 생성
+	GLuint MatrixID = glGetUniformLocation(ProgramID, "MVP");
+
+	// ---- in rendering loop, variables ----- 
+
+	// MVP 행렬 생성 -> 사용하기 편하게 전역으로 변경
+	/*glm::mat4 View = glm::lookAt(glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+	glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 1024.0f / 768.0f, 0.1f, 100.0f);*/
+	// Models
+	glm::mat4 LeftCarriageModel = glm::mat4(1.0f);
+	glm::mat4 RightCarriageModel = glm::mat4(1.0f);
+
+	// Model Translation Initialization
+	glm::mat4 Translation = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 3));
+	glm::mat4 Rotation = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0, 1, 0));
+	glm::mat4 Scaling = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+	LeftCarriageModel = Translation * Rotation * Scaling;
+
+	// 마우스 입력 관련 초기화
+	float lastTime = glfwGetTime();
+	float currentTime = lastTime;
+	glfwPollEvents();
+	glfwSetCursorPos(window, 1024 / 2, 768 / 2);
+
+	// camera position
+	glm::vec3 CamPosition = glm::vec3(0, 0, -3);
+	// camera movement
+	float horizontalAngle = 0.0f;
+	float VerticalAngle = 0.0f;
+	float mouseSpeed = 0.001f;
+	float CamMoveSpeed = 0.01f;
+
+	// ----- Objects Transform Component ----- 
+	TransformComponent leftcarriageTransform(glm::vec3(0, 0, 1), glm::vec3(0.5f, 1.0f, 0.5f));
+	TransformComponent rightcarriageTransform(glm::vec3(3, 0, 1), glm::vec3(0.5f, 1.0f, 0.5f));
+	TransformComponent barrelTransform(glm::vec3(1.5f, 2.0f, 0), glm::vec3(0.09f, 0.08f, 0.09f));
+	barrelTransform.rotate(-45.0f, glm::vec3(1, 0, 0));
+	TransformComponent planeTransform(glm::vec3(0, -1, -25), glm::vec3(30.0f, 0.01f, 30.0f)); // ※ 바닥의 y position은 -1
+
+	// 로켓 몸통을 중심으로 나머지는 상대위치로 설정
+	TransformComponent rocketBodyTransform(glm::vec3(0,0,5), glm::vec3(0.05f, 0.05f, 0.05f));
+	TransformComponent rocketHeadTransform(
+		glm::translate(rocketBodyTransform.translation, glm::vec3(0,1.2,0)),
+		glm::rotate(rocketBodyTransform.rotation, glm::radians(0.0f), glm::vec3(0, 1, 0)),
+		glm::scale(rocketBodyTransform.scale, glm::vec3(11.0f, 5.0f, 11.0f))
+	);
+	TransformComponent rocketFin1Transform(glm::vec3(0, 0, 0), glm::vec3(1.0f, 1.0f, 1.0f));
+	rocketFin1Transform.rotate(180, glm::vec3(0,1,0));
+
 	do {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // depth buffer bit 초기화로 depth test 통과처리
 
 		glUseProgram(ProgramID);
 
+		#pragma region Camera Control
+
+		// 현재 프레임의 cursor position을 받아와서 rotation을 변경하기
+		double xpos, ypos;
+		glfwGetCursorPos(window, &xpos, &ypos);
+		glfwSetCursorPos(window, 1024 / 2, 768 / 2); // 프레임 마지막에 cursor 고정
+
+		horizontalAngle += mouseSpeed * float(1024 / 2 - xpos);
+		VerticalAngle += mouseSpeed * float(768 / 2 - ypos);
+		if (VerticalAngle > 1.5f) VerticalAngle = 1.5f;
+		if (VerticalAngle < -1.5f) VerticalAngle = -1.5f;
+
+		glm::vec3 direction = glm::vec3(cos(VerticalAngle) * sin(horizontalAngle), sin(VerticalAngle), cos(VerticalAngle) * cos(horizontalAngle));
+
+		// 카메라 업 벡터 정의
+		currentTime = glfwGetTime();
+		float deltaTime = float(currentTime - lastTime);
+
+		glm::vec3 right = glm::vec3(sin(horizontalAngle - 3.14 / 2.0f), 0, cos(horizontalAngle - 3.14 / 2.0f));
+		glm::vec3 up = glm::cross(right, direction);
+
+
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		{ // W - move straight 
+			CamPosition += direction * deltaTime * CamMoveSpeed;
+		}
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		{ // A - move left
+			CamPosition += -right * deltaTime * CamMoveSpeed;
+		}
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		{ // S - move back
+			CamPosition += -direction * deltaTime * CamMoveSpeed;
+		}
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		{ // D - move right
+			CamPosition += right * deltaTime * CamMoveSpeed;
+		}
+		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+		{ // Q - move down
+			CamPosition += -up * deltaTime * CamMoveSpeed / 2.0f;
+		}
+		if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+		{ // E - move up
+			CamPosition += up * deltaTime * CamMoveSpeed / 2.0f;
+		}
+
+		View = glm::lookAt(CamPosition, CamPosition + direction, up);
+
+		#pragma endregion
+		
+		#pragma region Cannon Launcher Object
+
+		leftcarriageTransform = drawObject(leftcarriageTransform, cube_vertexbuffer, cube_vertex_color_buffer, MatrixID, cube_vertex_position_array.size());
+		rightcarriageTransform = drawObject(rightcarriageTransform, cube_vertexbuffer, cube_vertex_color_buffer, MatrixID, cube_vertex_position_array.size());
+		barrelTransform = drawObject(barrelTransform, cylinder_vertexbuffer, cylinder_vertex_color_buffer, MatrixID, cylinder_vertex_position_array.size());
+		planeTransform = drawObject(planeTransform, cube_vertexbuffer, cube_vertex_color_buffer, MatrixID, cube_vertex_position_array.size());
+
+		#pragma endregion
+
+		#pragma region
+
+		rocketBodyTransform = drawObject(rocketBodyTransform, cylinder_vertexbuffer, cylinder_vertex_color_buffer, MatrixID, cylinder_vertex_position_array.size());
+		rocketHeadTransform = drawObject(rocketHeadTransform, cone_vertexbuffer, cone_vertex_color_buffer, MatrixID, cone_vertex_position_array.size());
+		rocketFin1Transform = drawObject(rocketFin1Transform, triangle_vertexbuffer, triangle_vertex_color_buffer, MatrixID, sizeof(triangle_vertex_buffer_data));
+
+		#pragma endregion
+
+		glDisableVertexAttribArray(1);
 		glDisableVertexAttribArray(0);
 
 		// Swap buffers
@@ -79,13 +326,33 @@ int main()
 		glfwPollEvents();
 
 	} // Check if the ESC key was pressed or the window was closed
-	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-		glfwWindowShouldClose(window) == 0);
+	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0);
 
 	// Close OpenGL window and terminate GLFW
 	glfwTerminate();
 
 	return 0;
+}
+
+TransformComponent drawObject(TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size) {
+	glm::mat4 Model = transform.translation * transform.rotation * transform.scale;
+	glm::mat4 MVP = Projection * View * Model;
+
+	// vertex buffer를 이용한 위치 bind, enable array, attrib pointer
+	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+	// vertex color buffer를 이용한 bind, enable array, attrib pointer
+	glBindBuffer(GL_ARRAY_BUFFER, vertex_color_buffer);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+	// 유니폼 변수 데이터 입력
+	glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+	glDrawArrays(GL_TRIANGLES, 0, size);
+
+	return transform;
 }
 
 // .obj 파일에서 버텍스 위치, 텍스처 좌표, 노멀 벡터 데이터를 가져오는 함수
