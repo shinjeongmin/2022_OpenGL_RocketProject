@@ -37,5 +37,11 @@
     <None Include="SimpleVertexShader.vert">
       <Filter>소스 파일</Filter>
     </None>
+    <None Include="TextureFragmentShader.frag">
+      <Filter>소스 파일</Filter>
+    </None>
+    <None Include="TextureVertexShader.vert">
+      <Filter>소스 파일</Filter>
+    </None>
   </ItemGroup>
 </Project>

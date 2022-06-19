@@ -14,6 +14,7 @@ GLFWwindow* window;
 #include <GLM/gtc/matrix_transform.hpp>
 #include "shader.h"
 bool loadOBJ(const char*, std::vector<glm::vec3>&, std::vector<glm::vec2>&, std::vector<glm::vec3>&);
+GLuint loadBMP_custom(const char* imagepath);
 
 // another funtion
 void drawCylinder(GLuint, GLuint, GLuint, glm::mat4, int);
@@ -116,19 +117,23 @@ int main()
 	}
 
 	// 색 버퍼 생성, 바인딩, data 복사
-	GLuint vertexColorBuffer;
-	glGenBuffers(1, &vertexColorBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, vertexColorBuffer);
-	glBufferData(GL_ARRAY_BUFFER, cube_vertex_color_buffer_data.size() * sizeof(glm::vec3), &cube_vertex_color_buffer_data[0], GL_STATIC_DRAW);
-	GLuint vertexColorBuffer2;
-	glGenBuffers(1, &vertexColorBuffer2);
-	glBindBuffer(GL_ARRAY_BUFFER, vertexColorBuffer2);
-	glBufferData(GL_ARRAY_BUFFER, cylinder_vertex_color_buffer_data.size() * sizeof(glm::vec3), &cylinder_vertex_color_buffer_data[0], GL_STATIC_DRAW);
+	GLuint cubeVertexUVBuffer;
+	glGenBuffers(1, &cubeVertexUVBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, cubeVertexUVBuffer);
+	glBufferData(GL_ARRAY_BUFFER, cube_vertex_uv_array.size() * sizeof(glm::vec2), &cube_vertex_uv_array[0], GL_STATIC_DRAW);
+	GLuint cylinderVertexUVBuffer;
+	glGenBuffers(1, &cylinderVertexUVBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, cylinderVertexUVBuffer);
+	glBufferData(GL_ARRAY_BUFFER, cylinder_vertex_uv_array.size() * sizeof(glm::vec2), &cylinder_vertex_uv_array[0], GL_STATIC_DRAW);
 
-	GLuint ProgramID = LoadShaders("SimpleVertexShader.vert", "SimpleFragmentShader.frag"); // shader.cpp파일 필요
+	GLuint ProgramID = LoadShaders("TextureVertexShader.vert", "TextureFragmentShader.frag"); // shader.cpp파일 필요
 	
 	// 유니폼 변수 생성
 	GLuint MatrixID = glGetUniformLocation(ProgramID, "MVP");
+	GLuint TextureID = glGetUniformLocation(ProgramID, "TextureSampler");
+
+	// bmp 파일에서 텍스처를 가져와 적용
+	GLuint Texture = loadBMP_custom("texture/cubeTex.bmp");
 
 	// ---- in rendering loop, variables ----- 
 
@@ -184,9 +189,9 @@ int main()
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
 		// vertex color buffer를 이용한 bind, enable array, attrib pointer
-		glBindBuffer(GL_ARRAY_BUFFER, vertexColorBuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, cubeVertexUVBuffer);
 		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
 
 		// 키보드 조작
 		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
@@ -251,6 +256,10 @@ int main()
 		MVP2 = Projection * View * Model2;
 		MVP3 = Projection * View * Model3;
 
+		glUniform1i(TextureID, 0); // 유니폼 샘플러변수ID에 인덱스 0번 넣기
+		glActiveTexture(GL_TEXTURE0); // 0번 텍스처 인덱스 활성화
+		glBindTexture(GL_TEXTURE_2D, Texture); // 0번 텍스처 인덱스에 넣을 텍스처 바인딩
+
 		// 유니폼 변수 데이터 입력
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 		glDrawArrays(GL_TRIANGLES, 0, cube_vertex_position_array.size());
@@ -259,30 +268,9 @@ int main()
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP2[0][0]);
 		glDrawArrays(GL_TRIANGLES, 0, cube_vertex_position_array.size());
 
+		drawCylinder(vertexbuffer2, cylinderVertexUVBuffer, MatrixID, MVP3, cylinder_vertex_position_array.size());
 
-		//// cylinder를 그리기 위한 rebinding
-		//glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer2);
-		//glEnableVertexAttribArray(0);
-		//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-		//// vertex color buffer를 이용한 bind, enable array, attrib pointer
-		//glBindBuffer(GL_ARRAY_BUFFER, vertexColorBuffer2);
-		//glEnableVertexAttribArray(1);
-		//glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-		//// 키보드 조작
-		//if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-		//	Translation3 = glm::translate(Translation3, glm::vec3(0, 0.001, 0));
-		//}
-
-		//Model3 = Translation3 * Rotation3 * Scaling3;
-		//MVP3 = Projection * View * Model3;
-
-		//// 유니폼 변수3 데이터 입력
-		//glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP3[0][0]);
-		//glDrawArrays(GL_TRIANGLES, 0, cylinder_vertex_position_array.size());
-
-		drawCylinder(vertexbuffer2, vertexColorBuffer2, MatrixID, MVP3, cylinder_vertex_position_array.size());
+		// 인덱스 0번 넣어주기 완료
 
 		glDisableVertexAttribArray(0);
 
@@ -312,7 +300,7 @@ void drawCylinder(GLuint vertexbuffer2, GLuint vertexColorBuffer2, GLuint Matrix
 	// vertex color buffer를 이용한 bind, enable array, attrib pointer
 	glBindBuffer(GL_ARRAY_BUFFER, vertexColorBuffer2);
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
 	// 유니폼 변수3 데이터 입력
 	glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP3[0][0]);
@@ -412,4 +400,93 @@ bool loadOBJ(const char* path, std::vector<glm::vec3>& out_vertices, std::vector
 	}
 	fclose(file);
 	return true;
+}
+
+// BMP 파일을 텍스처 형태로 가져오는 매우 간단한 함수
+GLuint loadBMP_custom(const char* imagepath)
+{
+
+	printf("Reading image %s\n", imagepath);
+
+	// Data read from the header of the BMP file
+	unsigned char header[54];
+	unsigned int dataPos;
+	unsigned int imageSize;
+	unsigned int width, height;
+	// Actual RGB data
+	unsigned char* data;
+
+	// Open the file
+	FILE* file;
+	fopen_s(&file, imagepath, "rb");
+	if (!file) {
+		printf("%s could not be opened. Are you in the right directory ? Don't forget to read the FAQ !\n", imagepath);
+		getchar();
+		return 0;
+	}
+
+	// Read the header, i.e. the 54 first bytes
+
+	// If less than 54 bytes are read, problem
+	if (fread(header, 1, 54, file) != 54) {
+		printf("Not a correct BMP file\n");
+		fclose(file);
+		return 0;
+	}
+	// A BMP files always begins with "BM"
+	if (header[0] != 'B' || header[1] != 'M') {
+		printf("Not a correct BMP file\n");
+		fclose(file);
+		return 0;
+	}
+	// Make sure this is a 24bpp file
+	if (*(int*)&(header[0x1E]) != 0) { printf("Not a correct BMP file\n");    fclose(file); return 0; }
+	if (*(int*)&(header[0x1C]) != 24) { printf("Not a correct BMP file\n");    fclose(file); return 0; }
+
+	// Read the information about the image
+	dataPos = *(int*)&(header[0x0A]);
+	imageSize = *(int*)&(header[0x22]);
+	width = *(int*)&(header[0x12]);
+	height = *(int*)&(header[0x16]);
+
+	// Some BMP files are misformatted, guess missing information
+	if (imageSize == 0)    imageSize = width * height * 3; // 3 : one byte for each Red, Green and Blue component
+	if (dataPos == 0)      dataPos = 54; // The BMP header is done that way
+
+	// Create a buffer
+	data = new unsigned char[imageSize];
+
+	// Read the actual data from the file into the buffer
+	fread(data, 1, imageSize, file);
+
+	// Everything is in memory now, the file can be closed.
+	fclose(file);
+
+	// Create one OpenGL texture
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+
+	// "Bind" the newly created texture : all future texture functions will modify this texture
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	// Give the image to OpenGL
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
+
+	// OpenGL has now copied the data. Free our own version
+	delete[] data;
+
+	// Poor filtering, or ...
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+
+	// ... nice trilinear filtering ...
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	// ... which requires mipmaps. Generate them automatically.
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Return the ID of the texture we just created
+	return textureID;
 }
