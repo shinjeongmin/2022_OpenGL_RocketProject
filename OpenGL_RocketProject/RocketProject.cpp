@@ -14,6 +14,7 @@ GLFWwindow* window;
 #include <GLM/gtc/matrix_transform.hpp>
 #include "shader.h"
 bool loadOBJ(const char*, std::vector<glm::vec3>&, std::vector<glm::vec2>&, std::vector<glm::vec3>&);
+GLuint loadBMP_custom(const char* imagepath);
 
 // define transformation component
 class TransformComponent {
@@ -82,9 +83,9 @@ float headPosZ = -0.9f;
 float headPosZ_delta = 0.00015f;
 
 // another funtion
-TransformComponent drawObject(TransformComponent trasform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size);
-TransformComponent launchRocket(TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size);
-TransformComponent launchRocketHead(TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size);
+TransformComponent drawObject(TransformComponent trasform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size, GLuint texture);
+TransformComponent launchRocket(TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size, GLuint texture);
+//TransformComponent launchRocketHead(TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size);
 void setRocketSubObjPosition(TransformComponent body, TransformComponent* head, TransformComponent* fin1, TransformComponent* fin2, TransformComponent* fin3, TransformComponent* fin4);
 void rotateRocketTotalObject(TransformComponent body, TransformComponent* head, TransformComponent* fin1, TransformComponent* fin2, TransformComponent* fin3, TransformComponent* fin4);
 
@@ -236,10 +237,41 @@ int main()
 
 	#pragma endregion
 
-	GLuint ProgramID = LoadShaders("SimpleVertexShader.vert", "SimpleFragmentShader.frag"); // shader.cpp파일 필요
+	#pragma region uv vertex
+
+	GLuint cube_vertex_uv_buffer;
+	glGenBuffers(1, &cube_vertex_uv_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, cube_vertex_uv_buffer);
+	glBufferData(GL_ARRAY_BUFFER, cube_vertex_uv_array.size() * sizeof(glm::vec3), &cube_vertex_uv_array[0], GL_STATIC_DRAW);
+	GLuint cylinder_vertex_uv_buffer;
+	glGenBuffers(1, &cylinder_vertex_uv_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, cylinder_vertex_uv_buffer);
+	glBufferData(GL_ARRAY_BUFFER, cylinder_vertex_uv_array.size() * sizeof(glm::vec3), &cylinder_vertex_uv_array[0], GL_STATIC_DRAW);
+	GLuint cone_vertex_uv_buffer;
+	glGenBuffers(1, &cone_vertex_uv_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, cone_vertex_uv_buffer);
+	glBufferData(GL_ARRAY_BUFFER, cone_vertex_uv_array.size() * sizeof(glm::vec3), &cone_vertex_uv_array[0], GL_STATIC_DRAW);
+	GLuint triangle_vertex_uv_buffer;
+	glGenBuffers(1, &triangle_vertex_uv_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, triangle_vertex_uv_buffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertex_color_buffer_data), triangle_vertex_color_buffer_data, GL_STATIC_DRAW);
+
+	#pragma endregion
+
+	GLuint ProgramShaderID = LoadShaders("SimpleVertexShader.vert", "SimpleFragmentShader.frag"); // shader.cpp파일 필요
+	GLuint ProgramTextureID = LoadShaders("TextureVertexShader.vert", "TextureFragmentShader.frag");
 
 	// 유니폼 변수 생성
-	GLuint MatrixID = glGetUniformLocation(ProgramID, "MVP");
+	GLuint MatrixID = glGetUniformLocation(ProgramShaderID, "MVP");
+	GLuint TextureID = glGetUniformLocation(ProgramTextureID, "TextureSampler");
+
+	// bmp 파일에서 텍스처를 가져와 적용
+	GLuint Texture_checkpattern = loadBMP_custom("texture/checkpattern.bmp");
+	GLuint Texture_bananamilk = loadBMP_custom("texture/bananamilk.bmp");
+	GLuint Texture_cubeTex = loadBMP_custom("texture/cubeTex.bmp");
+	GLuint Texture_greenStripe = loadBMP_custom("texture/greenStripe.bmp");
+	GLuint Texture_greenDiamond = loadBMP_custom("texture/greenDiamond.bmp");
+	GLuint Texture_greenHexagon = loadBMP_custom("texture/greenHexagon.bmp");
 
 	// ---- in rendering loop, variables ----- 
 
@@ -316,7 +348,7 @@ int main()
 	do {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // depth buffer bit 초기화로 depth test 통과처리
 
-		glUseProgram(ProgramID);
+		glUseProgram(ProgramTextureID);
 
 		#pragma region Camera Control
 
@@ -371,10 +403,10 @@ int main()
 		
 		#pragma region Cannon Launcher Object
 
-		leftcarriageTransform = drawObject(leftcarriageTransform, cube_vertexbuffer, cube_vertex_color_buffer, MatrixID, cube_vertex_position_array.size());
-		rightcarriageTransform = drawObject(rightcarriageTransform, cube_vertexbuffer, cube_vertex_color_buffer, MatrixID, cube_vertex_position_array.size());
-		barrelTransform = drawObject(barrelTransform, cylinder_vertexbuffer, cylinder_vertex_color_buffer, MatrixID, cylinder_vertex_position_array.size());
-		planeTransform = drawObject(planeTransform, cube_vertexbuffer, cube_vertex_color_buffer, MatrixID, cube_vertex_position_array.size());
+		leftcarriageTransform = drawObject(leftcarriageTransform, cube_vertexbuffer, cube_vertex_uv_buffer, MatrixID, cube_vertex_position_array.size(), Texture_greenHexagon);
+		rightcarriageTransform = drawObject(rightcarriageTransform, cube_vertexbuffer, cube_vertex_uv_buffer, MatrixID, cube_vertex_position_array.size(), Texture_greenHexagon);
+		barrelTransform = drawObject(barrelTransform, cylinder_vertexbuffer, cylinder_vertex_uv_buffer, MatrixID, cylinder_vertex_position_array.size(), Texture_greenStripe);
+		planeTransform = drawObject(planeTransform, cube_vertexbuffer, cube_vertex_uv_buffer, MatrixID, cube_vertex_position_array.size(), Texture_checkpattern);
 
 		#pragma endregion
 
@@ -384,31 +416,33 @@ int main()
 		#pragma region Rocket Object
 
 		// body
-		rocketBodyTransform = launchRocket(rocketBodyTransform, cylinder_vertexbuffer, cylinder_vertex_color_buffer, MatrixID, cylinder_vertex_position_array.size());
+		rocketBodyTransform = launchRocket(rocketBodyTransform, cylinder_vertexbuffer, cylinder_vertex_uv_buffer, MatrixID, cylinder_vertex_position_array.size(), Texture_greenDiamond);
 		//setRocketSubObjPosition(rocketBodyTransform, &rocketHeadTransform, &rocketFin1Transform, &rocketFin2Transform, &rocketFin3Transform, &rocketFin4Transform);
 
 		if(!goal)
 			setRocketSubObjPosition(rocketBodyTransform, &rocketHeadTransform, &rocketFin1Transform, &rocketFin2Transform, &rocketFin3Transform, &rocketFin4Transform);
 
 		// head
-		rocketHeadTransform = drawObject(rocketHeadTransform, cone_vertexbuffer, cone_vertex_color_buffer, MatrixID, cone_vertex_position_array.size());
+		rocketHeadTransform = drawObject(rocketHeadTransform, cone_vertexbuffer, cone_vertex_uv_buffer, MatrixID, cone_vertex_position_array.size(), Texture_greenStripe);
 		//rocketHeadTransform = launchRocketHead(rocketHeadTransform, cone_vertexbuffer, cone_vertex_color_buffer, MatrixID, cone_vertex_position_array.size());
 
-		rocketFin1Transform = drawObject(rocketFin1Transform, triangle_vertexbuffer, triangle_vertex_color_buffer, MatrixID, sizeof(triangle_vertex_buffer_data));
+		rocketFin1Transform = drawObject(rocketFin1Transform, triangle_vertexbuffer, triangle_vertex_uv_buffer, MatrixID, sizeof(triangle_vertex_buffer_data), Texture_greenHexagon);
 		rocketFin1Transform.rotate(180, glm::vec3(0, 1, 0));
-		rocketFin1Transform = drawObject(rocketFin1Transform, triangle_vertexbuffer, triangle_vertex_color_buffer, MatrixID, sizeof(triangle_vertex_buffer_data));
-		rocketFin2Transform = drawObject(rocketFin2Transform, triangle_vertexbuffer, triangle_vertex_color_buffer, MatrixID, sizeof(triangle_vertex_buffer_data));
+		rocketFin1Transform = drawObject(rocketFin1Transform, triangle_vertexbuffer, triangle_vertex_uv_buffer, MatrixID, sizeof(triangle_vertex_buffer_data), Texture_greenHexagon);
+		rocketFin2Transform = drawObject(rocketFin2Transform, triangle_vertexbuffer, triangle_vertex_uv_buffer, MatrixID, sizeof(triangle_vertex_buffer_data), Texture_greenHexagon);
 		rocketFin2Transform.rotate(180, glm::vec3(0, 1, 0));
-		rocketFin2Transform = drawObject(rocketFin2Transform, triangle_vertexbuffer, triangle_vertex_color_buffer, MatrixID, sizeof(triangle_vertex_buffer_data));
-		rocketFin3Transform = drawObject(rocketFin3Transform, triangle_vertexbuffer, triangle_vertex_color_buffer, MatrixID, sizeof(triangle_vertex_buffer_data));
+		rocketFin2Transform = drawObject(rocketFin2Transform, triangle_vertexbuffer, triangle_vertex_uv_buffer, MatrixID, sizeof(triangle_vertex_buffer_data), Texture_greenHexagon);
+		rocketFin3Transform = drawObject(rocketFin3Transform, triangle_vertexbuffer, triangle_vertex_uv_buffer, MatrixID, sizeof(triangle_vertex_buffer_data), Texture_greenHexagon);
 		rocketFin3Transform.rotate(180, glm::vec3(0, 1, 0));
-		rocketFin3Transform = drawObject(rocketFin3Transform, triangle_vertexbuffer, triangle_vertex_color_buffer, MatrixID, sizeof(triangle_vertex_buffer_data));
-		rocketFin4Transform = drawObject(rocketFin4Transform, triangle_vertexbuffer, triangle_vertex_color_buffer, MatrixID, sizeof(triangle_vertex_buffer_data));
+		rocketFin3Transform = drawObject(rocketFin3Transform, triangle_vertexbuffer, triangle_vertex_uv_buffer, MatrixID, sizeof(triangle_vertex_buffer_data), Texture_greenHexagon);
+		rocketFin4Transform = drawObject(rocketFin4Transform, triangle_vertexbuffer, triangle_vertex_uv_buffer, MatrixID, sizeof(triangle_vertex_buffer_data), Texture_greenHexagon);
 		rocketFin4Transform.rotate(180, glm::vec3(0, 1, 0));
-		rocketFin4Transform = drawObject(rocketFin4Transform, triangle_vertexbuffer, triangle_vertex_color_buffer, MatrixID, sizeof(triangle_vertex_buffer_data));
+		rocketFin4Transform = drawObject(rocketFin4Transform, triangle_vertexbuffer, triangle_vertex_uv_buffer, MatrixID, sizeof(triangle_vertex_buffer_data), Texture_greenHexagon);
 
-		
 		#pragma endregion
+
+		glUniform1i(TextureID, 0); // 유니폼 샘플러변수ID에 인덱스 0번 넣기
+		glActiveTexture(GL_TEXTURE0); // 0번 텍스처 인덱스 활성화
 
 		glDisableVertexAttribArray(1);
 		glDisableVertexAttribArray(0);
@@ -426,7 +460,7 @@ int main()
 	return 0;
 }
 
-TransformComponent drawObject(TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size) {
+TransformComponent drawObject(TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size, GLuint texture) {
 	glm::mat4 Model = transform.translation * transform.rotation * transform.scale;
 	glm::mat4 MVP = Projection * View * Model;
 
@@ -438,7 +472,9 @@ TransformComponent drawObject(TransformComponent transform, GLuint vertex_buffer
 	// vertex color buffer를 이용한 bind, enable array, attrib pointer
 	glBindBuffer(GL_ARRAY_BUFFER, vertex_color_buffer);
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+	glBindTexture(GL_TEXTURE_2D, texture); // 0번 텍스처 인덱스에 넣을 텍스처 바인딩
 
 	// 유니폼 변수 데이터 입력
 	glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
@@ -447,7 +483,7 @@ TransformComponent drawObject(TransformComponent transform, GLuint vertex_buffer
 	return transform;
 }
 
-TransformComponent launchRocket(TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size) {
+TransformComponent launchRocket(TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size, GLuint texture) {
 	if (rocketLaunch && !goal) {
 		rocketLaunch = true;
 		transform.translation = glm::translate(transform.translation, glm::vec3(0, rocketPositionEnergy, rocketKineticEnergy));
@@ -470,7 +506,9 @@ TransformComponent launchRocket(TransformComponent transform, GLuint vertex_buff
 	// vertex color buffer를 이용한 bind, enable array, attrib pointer
 	glBindBuffer(GL_ARRAY_BUFFER, vertex_color_buffer);
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+	glBindTexture(GL_TEXTURE_2D, texture); // 0번 텍스처 인덱스에 넣을 텍스처 바인딩
 
 	// 유니폼 변수 데이터 입력
 	glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
@@ -653,4 +691,93 @@ bool loadOBJ(const char* path, std::vector<glm::vec3>& out_vertices, std::vector
 	}
 	fclose(file);
 	return true;
+}
+
+// BMP 파일을 텍스처 형태로 가져오는 매우 간단한 함수
+GLuint loadBMP_custom(const char* imagepath)
+{
+
+	printf("Reading image %s\n", imagepath);
+
+	// Data read from the header of the BMP file
+	unsigned char header[54];
+	unsigned int dataPos;
+	unsigned int imageSize;
+	unsigned int width, height;
+	// Actual RGB data
+	unsigned char* data;
+
+	// Open the file
+	FILE* file;
+	fopen_s(&file, imagepath, "rb");
+	if (!file) {
+		printf("%s could not be opened. Are you in the right directory ? Don't forget to read the FAQ !\n", imagepath);
+		getchar();
+		return 0;
+	}
+
+	// Read the header, i.e. the 54 first bytes
+
+	// If less than 54 bytes are read, problem
+	if (fread(header, 1, 54, file) != 54) {
+		printf("Not a correct BMP file\n");
+		fclose(file);
+		return 0;
+	}
+	// A BMP files always begins with "BM"
+	if (header[0] != 'B' || header[1] != 'M') {
+		printf("Not a correct BMP file\n");
+		fclose(file);
+		return 0;
+	}
+	// Make sure this is a 24bpp file
+	if (*(int*)&(header[0x1E]) != 0) { printf("Not a correct BMP file\n");    fclose(file); return 0; }
+	if (*(int*)&(header[0x1C]) != 24) { printf("Not a correct BMP file\n");    fclose(file); return 0; }
+
+	// Read the information about the image
+	dataPos = *(int*)&(header[0x0A]);
+	imageSize = *(int*)&(header[0x22]);
+	width = *(int*)&(header[0x12]);
+	height = *(int*)&(header[0x16]);
+
+	// Some BMP files are misformatted, guess missing information
+	if (imageSize == 0)    imageSize = width * height * 3; // 3 : one byte for each Red, Green and Blue component
+	if (dataPos == 0)      dataPos = 54; // The BMP header is done that way
+
+	// Create a buffer
+	data = new unsigned char[imageSize];
+
+	// Read the actual data from the file into the buffer
+	fread(data, 1, imageSize, file);
+
+	// Everything is in memory now, the file can be closed.
+	fclose(file);
+
+	// Create one OpenGL texture
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+
+	// "Bind" the newly created texture : all future texture functions will modify this texture
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	// Give the image to OpenGL
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
+
+	// OpenGL has now copied the data. Free our own version
+	delete[] data;
+
+	// Poor filtering, or ...
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+
+	// ... nice trilinear filtering ...
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	// ... which requires mipmaps. Generate them automatically.
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Return the ID of the texture we just created
+	return textureID;
 }
