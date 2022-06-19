@@ -133,7 +133,7 @@ int main()
 	GLuint TextureID = glGetUniformLocation(ProgramID, "TextureSampler");
 
 	// bmp 파일에서 텍스처를 가져와 적용
-	GLuint Texture = loadBMP_custom("texture/cubeTex.bmp");
+	GLuint Texture = loadBMP_custom("texture/bananamilk.bmp");
 
 	// ---- in rendering loop, variables ----- 
 
