@@ -51,6 +51,10 @@ public:
 glm::mat4 View = glm::lookAt(glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 1024.0f / 768.0f, 0.1f, 1000.0f);
 void setRocketSubObjPosition(TransformComponent body, TransformComponent* head, TransformComponent* fin1, TransformComponent* fin2, TransformComponent* fin3, TransformComponent* fin4);
+bool rocketLaunch = false;
+float rocketPositionEnergy = 0.1f;
+float rocketKineticEnergy = -0.1f;
+const float gravity = 0.0005f;
 
 // another funtion
 TransformComponent drawObject(TransformComponent trasform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size);
@@ -228,7 +232,7 @@ int main()
 	float horizontalAngle = 0.0f;
 	float VerticalAngle = 0.0f;
 	float mouseSpeed = 0.001f;
-	float CamMoveSpeed = 0.01f;
+	float CamMoveSpeed = 0.5f;
 
 	// ----- Objects Transform Component ----- 
 	TransformComponent leftcarriageTransform(glm::vec3(0, 0, 1), glm::vec3(0.5f, 1.0f, 0.5f));
@@ -237,30 +241,38 @@ int main()
 	barrelTransform.rotate(-45.0f, glm::vec3(1, 0, 0));
 	TransformComponent planeTransform(glm::vec3(0, -1, -25), glm::vec3(30.0f, 0.01f, 30.0f)); // ※ 바닥의 y position은 -1
 
+	// 로켓 상대 위치 변수
+	const glm::vec3 head_vec3 = glm::vec3(0, 1.2f, 0);
+	const glm::vec3 fin1_vec3 = glm::vec3(.6f, -.5f, 0);
+	const glm::vec3 fin2_vec3 = glm::vec3(0, -.5f, .6f);
+	const glm::vec3 fin3_vec3 = glm::vec3(-.6f, -.5f, 0);
+	const glm::vec3 fin4_vec3 = glm::vec3(0, -.5f, -.6f);
+
 	// 로켓 몸통을 중심으로 나머지는 상대위치로 설정
-	TransformComponent rocketBodyTransform(glm::vec3(0,0,5), glm::vec3(0.05f, 0.05f, 0.05f));
+	TransformComponent rocketBodyTransform(glm::vec3(1.5f, 2.5f, 0.0f), glm::vec3(0.05f, 0.05f, 0.05f));
+	rocketBodyTransform.rotate(-45.0f, glm::vec3(1, 0, 0));
 	TransformComponent rocketHeadTransform(
-		glm::translate(rocketBodyTransform.translation, glm::vec3(0,1.2,0)),
+		glm::translate(rocketBodyTransform.translation, head_vec3),
 		glm::rotate(rocketBodyTransform.rotation, glm::radians(0.0f), glm::vec3(0, 1, 0)),
 		glm::scale(rocketBodyTransform.scale, glm::vec3(11.0f, 5.0f, 11.0f))
 	);
 	TransformComponent rocketFin1Transform(
-		glm::translate(rocketBodyTransform.translation, glm::vec3(.6f, -.5f, 0)),
+		glm::translate(rocketBodyTransform.translation, fin1_vec3),
 		glm::rotate(rocketBodyTransform.rotation, glm::radians(0.0f), glm::vec3(0, 1, 0)),
 		glm::scale(rocketBodyTransform.scale, glm::vec3(10.0f, 10.0f, 10.0f))
 	);
 	TransformComponent rocketFin2Transform(
-		glm::translate(rocketBodyTransform.translation, glm::vec3(0, -.5f, .6f)),
+		glm::translate(rocketBodyTransform.translation, fin2_vec3),
 		glm::rotate(rocketBodyTransform.rotation, glm::radians(90.0f), glm::vec3(0, 1, 0)),
 		glm::scale(rocketBodyTransform.scale, glm::vec3(10.0f, 10.0f, 10.0f))
 	);
 	TransformComponent rocketFin3Transform(
-		glm::translate(rocketBodyTransform.translation, glm::vec3(-.6f, -.5f, 0)),
+		glm::translate(rocketBodyTransform.translation, fin3_vec3),
 		glm::rotate(rocketBodyTransform.rotation, glm::radians(0.0f), glm::vec3(0, 1, 0)),
 		glm::scale(rocketBodyTransform.scale, glm::vec3(10.0f, 10.0f, 10.0f))
 	);
 	TransformComponent rocketFin4Transform(
-		glm::translate(rocketBodyTransform.translation, glm::vec3(0, -.5f, -.6f)),
+		glm::translate(rocketBodyTransform.translation, fin4_vec3),
 		glm::rotate(rocketBodyTransform.rotation, glm::radians(90.0f), glm::vec3(0, 1, 0)),
 		glm::scale(rocketBodyTransform.scale, glm::vec3(10.0f, 10.0f, 10.0f))
 	);
@@ -390,11 +402,13 @@ TransformComponent drawObject(TransformComponent transform, GLuint vertex_buffer
 }
 
 TransformComponent move(TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size) {
-	// 키보드 조작
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-		transform.translation = glm::translate(transform.translation, glm::vec3(0, 0.01f, 0));
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS || rocketLaunch) {
+		//rocketLaunch = true;
+		transform.translation = glm::translate(transform.translation, glm::vec3(0, rocketPositionEnergy, rocketKineticEnergy));
+		transform.rotation = glm::rotate(transform.rotation, glm::radians(-0.3f), glm::vec3(1, 0, 0));
+		rocketPositionEnergy -= gravity;
 	}
-	
+
 	glm::mat4 Model = transform.translation * transform.rotation * transform.scale;
 	glm::mat4 MVP = Projection * View * Model;
 
@@ -417,8 +431,8 @@ TransformComponent move(TransformComponent transform, GLuint vertex_buffer, GLui
 
 void setRocketSubObjPosition(TransformComponent body, TransformComponent* head, TransformComponent* fin1, TransformComponent* fin2, TransformComponent* fin3, TransformComponent* fin4) {
 	head->setTransform(
-		glm::translate(body.translation, glm::vec3(0, 1.2, 0)),
-		glm::rotate(body.rotation, glm::radians(0.0f), glm::vec3(0, 1, 0)),
+		glm::translate(body.translation, glm::vec3(0, 1.2f, 0)),
+		glm::rotate(body.rotation, glm::radians(0.0f), glm::vec3(0,1,0)),
 		glm::scale(body.scale, glm::vec3(11.0f, 5.0f, 11.0f))
 	);
 	fin1->setTransform(
@@ -440,6 +454,18 @@ void setRocketSubObjPosition(TransformComponent body, TransformComponent* head, 
 		glm::translate(body.translation, glm::vec3(0, -.5f, -.6f)),
 		glm::rotate(body.rotation, glm::radians(90.0f), glm::vec3(0, 1, 0)),
 		glm::scale(body.scale, glm::vec3(10.0f, 10.0f, 10.0f))
+	);
+}
+
+/// <summary>
+/// rocket의 전체 오브젝트를 회전하는 함수
+/// </summary>
+void rotateRocketTotalObject(TransformComponent body, TransformComponent* head, TransformComponent* fin1, TransformComponent* fin2, TransformComponent* fin3, TransformComponent* fin4) {
+
+	head->setTransform(
+		glm::translate(body.translation, glm::vec3(0, 1.2, 0)),
+		glm::rotate(body.rotation, glm::radians(0.0f), glm::vec3(0, 1, 0)),
+		glm::scale(body.scale, glm::vec3(11.0f, 5.0f, 11.0f))
 	);
 }
 
