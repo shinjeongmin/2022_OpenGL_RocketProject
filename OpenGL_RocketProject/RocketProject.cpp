@@ -22,7 +22,7 @@ public:
 	glm::mat4 translation;
 	glm::mat4 rotation;
 	glm::mat4 scale;
-
+	
 	TransformComponent(glm::vec3 _pos, glm::vec3 _scale) {
 		translation = glm::translate(glm::mat4(1.0f), _pos);
 		rotation = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0,1,0));
@@ -56,6 +56,13 @@ public:
 	glm::vec3 getTranslationVector() {
 		glm::vec3 vector3 = glm::vec3(translation[3][0], translation[3][1], translation[3][2]);
 		return vector3;
+	}
+
+	glm::mat4 getModel() {
+		return translation * rotation * scale;
+	}
+	glm::mat4 getMultiplayModel(glm::mat4 model) {
+		return model * translation * rotation * scale;
 	}
 };
 
@@ -91,7 +98,7 @@ float headPosZ_delta = 0.015f;
 // another funtion
 TransformComponent drawObject(TransformComponent trasform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size, GLuint texture);
 TransformComponent launchRocket(TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size, GLuint texture);
-//TransformComponent launchRocketHead(TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size);
+TransformComponent launchRocketHead(TransformComponent body, TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size);
 void setRocketSubObjPosition(TransformComponent body, TransformComponent* head, TransformComponent* fin1, TransformComponent* fin2, TransformComponent* fin3, TransformComponent* fin4);
 void rotateRocketTotalObject(TransformComponent body, TransformComponent* head, TransformComponent* fin1, TransformComponent* fin2, TransformComponent* fin3, TransformComponent* fin4);
 
@@ -307,7 +314,7 @@ int main()
 	float VerticalAngle = 0.0f;
 	float mouseSpeed = 0.001f;
 	//float CamMoveSpeed = 0.05f; // Laptop
-	float CamMoveSpeed = 0.5f; // PC
+	float CamMoveSpeed = 0.05f; // PC
 
 	// ----- Objects Transform Component ----- 
 	TransformComponent leftcarriageTransform(glm::vec3(0, 0, 1), glm::vec3(0.5f, 1.0f, 0.5f));
@@ -317,7 +324,7 @@ int main()
 	TransformComponent planeTransform(glm::vec3(0, -1, -25), glm::vec3(30.0f, 0.01f, 30.0f)); // ※ 바닥의 y position은 -1
 
 	// 로켓 상대 위치 변수
-	const glm::vec3 head_vec3 = glm::vec3(0, 1.2f, 0);
+	const glm::vec3 head_vec3 = glm::vec3(0, 10.2f, 0);
 	const glm::vec3 fin1_vec3 = glm::vec3(.6f, -.5f, 0);
 	const glm::vec3 fin2_vec3 = glm::vec3(0, -.5f, .6f);
 	const glm::vec3 fin3_vec3 = glm::vec3(-.6f, -.5f, 0);
@@ -327,9 +334,9 @@ int main()
 	TransformComponent rocketBodyTransform(glm::vec3(1.5f, 2.5f, 0.0f), glm::vec3(0.05f, 0.05f, 0.05f));
 	rocketBodyTransform.rotate(bodyDegree, glm::vec3(1, 0, 0));
 	TransformComponent rocketHeadTransform(
-		glm::translate(rocketBodyTransform.translation, head_vec3),
-		glm::rotate(rocketBodyTransform.rotation, glm::radians(0.0f), glm::vec3(0, 1, 0)),
-		glm::scale(rocketBodyTransform.scale, glm::vec3(11.0f, 5.0f, 11.0f))
+		glm::translate(glm::mat4(1), glm::vec3(0, 35.2f, 0)),
+		glm::rotate(glm::mat4(1), glm::radians(0.0f), glm::vec3(0, 1, 0)),
+		glm::scale(glm::mat4(1), glm::vec3(15.0f, 15.0f, 15.0f))
 	);
 	TransformComponent rocketFin1Transform(
 		glm::translate(rocketBodyTransform.translation, fin1_vec3),
@@ -430,8 +437,8 @@ int main()
 			setRocketSubObjPosition(rocketBodyTransform, &rocketHeadTransform, &rocketFin1Transform, &rocketFin2Transform, &rocketFin3Transform, &rocketFin4Transform);
 
 		// head
-		rocketHeadTransform = drawObject(rocketHeadTransform, cone_vertexbuffer, cone_vertex_uv_buffer, MatrixID, cone_vertex_position_array.size(), Texture_greenStripe);
-		//rocketHeadTransform = launchRocketHead(rocketHeadTransform, cone_vertexbuffer, cone_vertex_color_buffer, MatrixID, cone_vertex_position_array.size());
+		//rocketHeadTransform = drawObject(rocketHeadTransform, cone_vertexbuffer, cone_vertex_uv_buffer, MatrixID, cone_vertex_position_array.size(), Texture_greenStripe);
+		rocketHeadTransform = launchRocketHead(rocketBodyTransform, rocketHeadTransform, cone_vertexbuffer, cone_vertex_color_buffer, MatrixID, cone_vertex_position_array.size());
 
 		rocketFin1Transform = drawObject(rocketFin1Transform, triangle_vertexbuffer, triangle_vertex_uv_buffer, MatrixID, sizeof(triangle_vertex_buffer_data), Texture_greenHexagon);
 		rocketFin1Transform.rotate(180, glm::vec3(0, 1, 0));
@@ -470,6 +477,12 @@ int main()
 TransformComponent drawObject(TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size, GLuint texture) {
 	glm::mat4 Model = transform.translation * transform.rotation * transform.scale;
 	glm::mat4 MVP = Projection * View * Model;
+
+	//
+	glm::mat4 CylinderLocalModel;
+	glm::mat4 ConeLocalModel;
+	glm::mat4 ConeWorldModel = CylinderLocalModel * ConeLocalModel;
+	//
 
 	// vertex buffer를 이용한 위치 bind, enable array, attrib pointer
 	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
@@ -524,34 +537,27 @@ TransformComponent launchRocket(TransformComponent transform, GLuint vertex_buff
 	return transform;
 }
 
-//TransformComponent launchRocketHead(TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size) {
-//	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS || rocketLaunch) {
-//		//rocketLaunch = true;
-//		transform.translation = glm::translate(transform.translation, glm::vec3(0, rocketPositionEnergy + headPosY, rocketKineticEnergy + headPosZ));
-//		transform.rotation = glm::rotate(transform.rotation, glm::radians(changeDegree), glm::vec3(1, 0, 0));
-//		headPosY -= headPosY_delta;
-//		headPosZ -= headPosZ_delta;
-//	}
-//
-//	glm::mat4 Model = transform.translation * transform.rotation * transform.scale;
-//	glm::mat4 MVP = Projection * View * Model;
-//
-//	// vertex buffer를 이용한 위치 bind, enable array, attrib pointer
-//	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-//	glEnableVertexAttribArray(0);
-//	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-//
-//	// vertex color buffer를 이용한 bind, enable array, attrib pointer
-//	glBindBuffer(GL_ARRAY_BUFFER, vertex_color_buffer);
-//	glEnableVertexAttribArray(1);
-//	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-//
-//	// 유니폼 변수 데이터 입력
-//	glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-//	glDrawArrays(GL_TRIANGLES, 0, size);
-//
-//	return transform;
-//}
+TransformComponent launchRocketHead(TransformComponent body, TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size) {
+	glm::mat4 Model = transform.getMultiplayModel(body.getModel());
+	
+	glm::mat4 MVP = Projection * View * Model;
+
+	// vertex buffer를 이용한 위치 bind, enable array, attrib pointer
+	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+	// vertex color buffer를 이용한 bind, enable array, attrib pointer
+	glBindBuffer(GL_ARRAY_BUFFER, vertex_color_buffer);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+	// 유니폼 변수 데이터 입력
+	glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+	glDrawArrays(GL_TRIANGLES, 0, size);
+
+	return transform;
+}
 
 // Laptop
 float headDegree = -45.f;
@@ -566,11 +572,11 @@ void setRocketSubObjPosition(TransformComponent body, TransformComponent* head, 
 		headDegree -= 0.003f;
 		finDegree -= 0.001f;
 	}
-	head->setTransform(
+	/*head->setTransform(
 		glm::translate(body.translation, glm::vec3(0, 1.7f * cos(headDegree), 1.2f * sin(headDegree))),
 		glm::rotate(body.rotation, glm::radians(0.0f), glm::vec3(0,1,0)),
 		glm::scale(body.scale, glm::vec3(11.0f, 5.0f, 11.0f))
-	);
+	);*/
 	fin1->setTransform(
 		glm::translate(body.translation, glm::vec3(.6f * sin(headDegree), -.5f * cos(headDegree), 0)),
 		glm::rotate(body.rotation, glm::radians(0.0f), glm::vec3(0, 1, 0)),
