@@ -99,7 +99,6 @@ float headPosZ_delta = 0.015f;
 TransformComponent drawObject(TransformComponent trasform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size, GLuint texture);
 TransformComponent launchRocket(TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size, GLuint texture);
 TransformComponent launchRocketSubObject(TransformComponent body, TransformComponent transform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size, GLuint texture);
-void setRocketSubObjPosition(TransformComponent body, TransformComponent* head, TransformComponent* fin1, TransformComponent* fin2, TransformComponent* fin3, TransformComponent* fin4);
 
 int main()
 {
@@ -432,9 +431,6 @@ int main()
 		rocketBodyTransform = launchRocket(rocketBodyTransform, cylinder_vertexbuffer, cylinder_vertex_uv_buffer, MatrixID, cylinder_vertex_position_array.size(), Texture_greenDiamond);
 		//setRocketSubObjPosition(rocketBodyTransform, &rocketHeadTransform, &rocketFin1Transform, &rocketFin2Transform, &rocketFin3Transform, &rocketFin4Transform);
 
-		if(!goal)
-			setRocketSubObjPosition(rocketBodyTransform, &rocketHeadTransform, &rocketFin1Transform, &rocketFin2Transform, &rocketFin3Transform, &rocketFin4Transform);
-
 		// head
 		rocketHeadTransform = launchRocketSubObject(rocketBodyTransform, rocketHeadTransform, cone_vertexbuffer, cone_vertex_color_buffer, MatrixID, cone_vertex_position_array.size(), Texture_greenDiamond);
 
@@ -556,41 +552,6 @@ TransformComponent launchRocketSubObject(TransformComponent body, TransformCompo
 	glDrawArrays(GL_TRIANGLES, 0, size);
 
 	return transform;
-}
-
-// Laptop
-float headDegree = -45.f;
-float finDegree = 0.0f;
-void setRocketSubObjPosition(TransformComponent body, TransformComponent* head, TransformComponent* fin1, TransformComponent* fin2, TransformComponent* fin3, TransformComponent* fin4) {
-	if (rocketLaunch) {
-		// Laptop
-		//headDegree -= 0.00065f;
-		//finDegree -= 0.0001f;
-
-		// PC
-		headDegree -= 0.003f;
-		finDegree -= 0.001f;
-	}
-	//fin1->setTransform(
-	//	glm::translate(body.translation, glm::vec3(.6f * sin(headDegree), -.5f * cos(headDegree), 0)),
-	//	glm::rotate(body.rotation, glm::radians(0.0f), glm::vec3(0, 1, 0)),
-	//	glm::scale(body.scale, glm::vec3(10.0f, 10.0f, 10.0f))
-	//);
-	//fin2->setTransform(
-	//	glm::translate(body.translation, glm::vec3(0, -.5f * cos(finDegree), 1.0f * sin(finDegree))),
-	//	glm::rotate(body.rotation, glm::radians(90.0f), glm::vec3(0, 1, 0)),
-	//	glm::scale(body.scale, glm::vec3(10.0f, 10.0f, 10.0f))
-	//);
-	//fin3->setTransform(
-	//	glm::translate(body.translation, glm::vec3(-.6f * sin(headDegree), -.5f * cos(headDegree), 0)),
-	//	glm::rotate(body.rotation, glm::radians(0.0f), glm::vec3(0, 1, 0)),
-	//	glm::scale(body.scale, glm::vec3(10.0f, 10.0f, 10.0f))
-	//);
-	//fin4->setTransform(
-	//	glm::translate(body.translation, glm::vec3(0, .5f * cos(finDegree), 1.0f * sin(finDegree))),
-	//	glm::rotate(body.rotation, glm::radians(90.0f), glm::vec3(0, 1, 0)),
-	//	glm::scale(body.scale, glm::vec3(10.0f, 10.0f, 10.0f))
-	//);
 }
 
 // .obj 파일에서 버텍스 위치, 텍스처 좌표, 노멀 벡터 데이터를 가져오는 함수
