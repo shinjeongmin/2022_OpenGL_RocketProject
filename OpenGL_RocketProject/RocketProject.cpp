@@ -65,22 +65,28 @@ glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 1024.0f / 768.0f, 0
 bool rocketLaunch = false;
 bool goal = false;
 // Desktop
-//float rocketPositionEnergy = 0.1f;
-//float rocketKineticEnergy = -0.1f;
-//const float gravity = 0.0005f;
-//const float changeDegree = -0.3f;
-
-// Laptop
-float rocketPositionEnergy = 0.01f;
-float rocketKineticEnergy = -0.01f;
-const float gravity = 0.00001f;
+float rocketPositionEnergy = 0.1f;
+float rocketKineticEnergy = -0.1f;
+const float gravity = 0.0005f;
+const float changeDegree = -0.3f;
 
 float bodyDegree = -45.0f;
-const float changeDegree = -0.05f;
 float headPosY = 1.2f;
-float headPosY_delta = 0.0013f;
+float headPosY_delta = 0.13f;
 float headPosZ = -0.9f;
-float headPosZ_delta = 0.00015f;
+float headPosZ_delta = 0.015f;
+
+// Laptop
+//float rocketPositionEnergy = 0.01f;
+//float rocketKineticEnergy = -0.01f;
+//const float gravity = 0.00001f;
+//const float changeDegree = -0.05f;
+
+//float bodyDegree = -45.0f;
+//float headPosY = 1.2f;
+//float headPosY_delta = 0.0013f;
+//float headPosZ = -0.9f;
+//float headPosZ_delta = 0.00015f;
 
 // another funtion
 TransformComponent drawObject(TransformComponent trasform, GLuint vertex_buffer, GLuint vertex_color_buffer, GLuint MatrixID, int size, GLuint texture);
@@ -300,7 +306,8 @@ int main()
 	float horizontalAngle = 0.0f;
 	float VerticalAngle = 0.0f;
 	float mouseSpeed = 0.001f;
-	float CamMoveSpeed = 0.05f;
+	//float CamMoveSpeed = 0.05f; // Laptop
+	float CamMoveSpeed = 0.5f; // PC
 
 	// ----- Objects Transform Component ----- 
 	TransformComponent leftcarriageTransform(glm::vec3(0, 0, 1), glm::vec3(0.5f, 1.0f, 0.5f));
@@ -546,12 +553,18 @@ TransformComponent launchRocket(TransformComponent transform, GLuint vertex_buff
 //	return transform;
 //}
 
+// Laptop
 float headDegree = -45.f;
 float finDegree = 0.0f;
 void setRocketSubObjPosition(TransformComponent body, TransformComponent* head, TransformComponent* fin1, TransformComponent* fin2, TransformComponent* fin3, TransformComponent* fin4) {
 	if (rocketLaunch) {
-		headDegree -= 0.00065f;
-		finDegree -= 0.0001f;
+		// Laptop
+		//headDegree -= 0.00065f;
+		//finDegree -= 0.0001f;
+
+		// PC
+		headDegree -= 0.003f;
+		finDegree -= 0.001f;
 	}
 	head->setTransform(
 		glm::translate(body.translation, glm::vec3(0, 1.7f * cos(headDegree), 1.2f * sin(headDegree))),
